@@ -1,2 +1,2 @@
-# know-your-numbers-
+# know-your-numbers
 Know Your Numbers
