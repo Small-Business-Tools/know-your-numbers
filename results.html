@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Results | Know Your Numbers!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green-deep:  #1A4D3E;
+      --green-mid:   #2A6B57;
+      --green-light: #E8F5F0;
+      --amber:       #F5A623;
+      --amber-light: #FDE9BC;
+      --bg:          #F8FAF9;
+      --surface:     #FFFFFF;
+      --border:      #D8EAE4;
+      --text:        #1A2E28;
+      --muted:       #5C7A72;
+      --radius:      10px;
+    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.6; }
+
+    .results-header { background: var(--green-deep); padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { text-decoration: none; font-size: 1.2rem; font-weight: 800; color: #fff; }
+    .logo span { color: var(--amber); }
+    .header-tag { font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.5); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .result-hero { background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-mid) 100%); padding: 64px 24px 96px; text-align: center; position: relative; overflow: hidden; }
+    .result-hero::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 50px; background: var(--bg); clip-path: ellipse(52% 100% at 50% 100%); }
+    .result-eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 32px; opacity: 0; animation: fadeUp 0.5s ease 0.1s forwards; }
+
+    .score-ring-wrap { display: inline-flex; flex-direction: column; align-items: center; margin-bottom: 32px; opacity: 0; animation: fadeUp 0.5s ease 0.25s forwards; }
+    .score-ring { width: 150px; height: 150px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 14px; }
+    .score-ring svg { position: absolute; top: 0; left: 0; width: 150px; height: 150px; transform: rotate(-90deg); }
+    .score-ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 10; }
+    .score-ring-fill { fill: none; stroke: var(--amber); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 408; stroke-dashoffset: 408; transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .score-inner { display: flex; flex-direction: column; align-items: center; z-index: 1; }
+    .score-number { font-size: 3rem; font-weight: 800; color: #fff; line-height: 1; }
+    .score-label { font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .score-band { display: inline-block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 16px; border-radius: 100px; border: 1px solid; }
+
+    .result-title { font-size: clamp(1.9rem, 4.5vw, 3rem); font-weight: 800; color: #fff; line-height: 1.15; letter-spacing: -0.02em; max-width: 600px; margin: 28px auto 14px; opacity: 0; animation: fadeUp 0.5s ease 0.4s forwards; }
+    .result-title em { font-style: italic; color: var(--amber); }
+    .result-subtitle { font-size: 1rem; color: rgba(255,255,255,0.7); max-width: 500px; margin: 0 auto; line-height: 1.8; opacity: 0; animation: fadeUp 0.5s ease 0.52s forwards; }
+
+    .page-section { max-width: 780px; margin: 0 auto; padding: 60px 24px; }
+    .section-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-mid); margin-bottom: 12px; }
+    .section-title { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; color: var(--green-deep); letter-spacing: -0.02em; margin-bottom: 32px; line-height: 1.2; }
+    .section-title em { font-style: italic; color: var(--green-mid); }
+
+    .insight-list { display: flex; flex-direction: column; gap: 14px; }
+    .insight-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; display: flex; gap: 20px; align-items: flex-start; }
+    .insight-num { font-size: 1.8rem; font-weight: 800; color: var(--green-light); line-height: 1; flex-shrink: 0; min-width: 36px; }
+    .insight-title { font-size: 1rem; font-weight: 700; color: var(--green-deep); margin-bottom: 6px; }
+    .insight-text { font-size: 0.9rem; line-height: 1.7; color: var(--muted); }
+
+    .cta-section { max-width: 780px; margin: 0 auto; padding: 0 24px 64px; }
+
+    /* QUALIFIED */
+    .cta-qualified { background: var(--green-deep); border-radius: 16px; padding: 48px 44px; position: relative; overflow: hidden; }
+    .cta-qualified::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--green-mid), var(--amber)); border-radius: 16px 16px 0 0; }
+    .waitlist-pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.3); color: var(--amber); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 14px; border-radius: 100px; margin-bottom: 20px; }
+    .cta-qualified .cta-title { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; color: #fff; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 14px; }
+    .cta-qualified .cta-title em { font-style: italic; color: var(--amber); }
+    .cta-qualified .cta-desc { font-size: 0.95rem; color: rgba(255,255,255,0.65); line-height: 1.8; max-width: 500px; margin-bottom: 28px; }
+    .cta-qualified .cta-desc strong { color: rgba(255,255,255,0.9); }
+
+    .promise-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+    .promise-item { display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: rgba(255,255,255,0.7); }
+    .promise-item::before { content: '✓'; color: var(--amber); font-weight: 800; flex-shrink: 0; }
+
+    .wl-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .wl-form-row input { width: 100%; padding: 14px 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.95rem; border-radius: var(--radius); outline: none; transition: border-color 0.2s; }
+    .wl-form-row input::placeholder { color: rgba(255,255,255,0.35); }
+    .wl-form-row input:focus { border-color: var(--amber); }
+
+    .btn-waitlist { width: 100%; padding: 16px; background: var(--amber); color: var(--green-deep); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 800; border: none; border-radius: 100px; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .btn-waitlist:hover:not(:disabled) { background: var(--amber-light); }
+    .btn-waitlist:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .no-commitment-note { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius); padding: 14px 18px; margin-top: 16px; font-size: 0.82rem; color: rgba(255,255,255,0.6); line-height: 1.65; text-align: center; }
+    .no-commitment-note strong { color: rgba(255,255,255,0.9); }
+
+    /* Reviews inside CTA */
+    .cta-reviews { margin-top: 32px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .cta-reviews-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 14px; }
+    .cta-review-item { margin-bottom: 14px; }
+    .cta-review-stars { color: var(--amber); font-size: 0.78rem; margin-bottom: 5px; }
+    .cta-review-text { font-size: 0.85rem; font-style: italic; color: rgba(255,255,255,0.65); line-height: 1.65; margin-bottom: 6px; }
+    .cta-review-author { font-size: 0.75rem; color: rgba(255,255,255,0.4); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .founding-badge-sm { display: inline-flex; background: rgba(245,166,35,0.15); color: var(--amber); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; }
+
+    /* NOT QUALIFIED */
+    .cta-not-qualified { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 48px 44px; position: relative; overflow: hidden; }
+    .cta-not-qualified::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--border); border-radius: 16px 16px 0 0; }
+    .cta-not-qualified .cta-title { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 800; color: var(--green-deep); line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 14px; }
+    .cta-not-qualified .cta-title em { font-style: italic; color: var(--green-mid); }
+    .cta-not-qualified .cta-desc { font-size: 0.95rem; color: var(--muted); line-height: 1.8; margin-bottom: 28px; }
+
+    .ul-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .ul-form-row input { width: 100%; padding: 14px 16px; background: var(--bg); border: 2px solid var(--border); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.95rem; border-radius: var(--radius); outline: none; transition: border-color 0.2s; }
+    .ul-form-row input:focus { border-color: var(--green-mid); background: var(--surface); }
+    .btn-update { width: 100%; padding: 16px; background: var(--green-deep); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 800; border: none; border-radius: 100px; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .btn-update:hover:not(:disabled) { background: var(--amber); color: var(--green-deep); }
+    .btn-update:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .success-state { display: none; text-align: center; padding: 32px 16px; }
+    .success-icon { font-size: 3rem; margin-bottom: 16px; }
+    .success-state h3 { font-size: 1.6rem; font-weight: 800; margin-bottom: 10px; }
+    .success-state p { font-size: 0.95rem; line-height: 1.7; max-width: 380px; margin: 0 auto; }
+    .success-qualified h3 { color: #fff; }
+    .success-qualified p { color: rgba(255,255,255,0.6); }
+    .success-not-qualified h3 { color: var(--green-deep); }
+    .success-not-qualified p { color: var(--muted); }
+
+    footer { background: #0F2E24; padding: 32px 40px; text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.3); margin-top: 20px; }
+    footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 600px) {
+      .results-header { padding: 14px 20px; }
+      .cta-qualified, .cta-not-qualified { padding: 32px 24px; }
+      .wl-form-row, .ul-form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="results-header">
+    <a href="https://small-business-tools.github.io/know-your-numbers/" class="logo">Know Your Numbers<span>!</span></a>
+    <div class="header-tag">Your Results</div>
+  </header>
+
+  <div class="result-hero">
+    <div class="result-eyebrow" id="resultEyebrow">Your Business Numbers Score</div>
+    <div class="score-ring-wrap">
+      <div class="score-ring" id="scoreRing">
+        <svg viewBox="0 0 150 150">
+          <circle class="score-ring-bg" cx="75" cy="75" r="65"/>
+          <circle class="score-ring-fill" id="scoreRingFill" cx="75" cy="75" r="65"/>
+        </svg>
+        <div class="score-inner">
+          <div class="score-number" id="scoreDisplay">0</div>
+          <div class="score-label">out of 100</div>
+        </div>
+      </div>
+      <div class="score-band" id="scoreBand"></div>
+    </div>
+    <h1 class="result-title" id="resultTitle"></h1>
+    <p class="result-subtitle" id="resultSubtitle"></p>
+  </div>
+
+  <section class="page-section">
+    <div class="section-label">What this means for you</div>
+    <h2 class="section-title" id="insightsTitle"></h2>
+    <div class="insight-list" id="insightList"></div>
+  </section>
+
+  <div class="cta-section" id="ctaSection"></div>
+
+  <footer>
+    <p>© 2026 Know Your Numbers! &nbsp;·&nbsp; Your data is safe. Never sold. Never shared.</p>
+  </footer>
+
+<script>
+  const name      = sessionStorage.getItem('kyn_name') || '';
+  const email     = sessionStorage.getItem('kyn_email') || '';
+  const score     = parseInt(sessionStorage.getItem('kyn_score') || '-1');
+  const qualified = sessionStorage.getItem('kyn_qualified') === 'true';
+  const answers   = JSON.parse(sessionStorage.getItem('kyn_answers') || '{}');
+  const firstName = name.split(' ')[0] || 'there';
+
+  if (score === -1 || !email) { window.location.href = 'quiz.html'; }
+
+  // Score ring animation
+  const circumference = 2 * Math.PI * 65;
+  const ringFill = document.getElementById('scoreRingFill');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  ringFill.style.strokeDasharray = circumference;
+  ringFill.style.strokeDashoffset = circumference;
+  let current = 0;
+  const countInterval = setInterval(() => { current = Math.min(current + 1, score); scoreDisplay.textContent = current; if (current >= score) clearInterval(countInterval); }, 18);
+  setTimeout(() => { ringFill.style.strokeDashoffset = circumference - (score / 100) * circumference; }, 100);
+
+  // Band
+  let bandLabel, bandColor;
+  if (score >= 80) { bandLabel = '🟢 Strong Foundations'; bandColor = 'rgba(42,107,87,0.9)'; }
+  else if (score >= 40) { bandLabel = '🟡 Some Blind Spots'; bandColor = 'rgba(200,130,20,0.9)'; }
+  else { bandLabel = '🔴 Significant Blind Spots'; bandColor = 'rgba(180,60,40,0.8)'; }
+  const bandEl = document.getElementById('scoreBand');
+  bandEl.textContent = bandLabel;
+  bandEl.style.color = bandColor;
+  bandEl.style.borderColor = bandColor;
+
+  // Content
+  const content = {
+    high: {
+      title: `${firstName}, you know more than <em>most business owners ever will.</em>`,
+      subtitle: "Your financial awareness is genuinely strong. But awareness alone is not profit. The owners who grow fastest are those who combine knowledge with a consistent monthly system. That is where the real magic happens.",
+      insightsTitle: `Three things your score <em>is really telling you</em>`,
+      insights: [
+        { title: "Knowing and doing are two very different things", text: "Awareness is a huge advantage. Most business owners never get this far. But the ones who truly grow are those who turn that awareness into a monthly habit. Reading the numbers. Acting on them. Doing it every single month without fail." },
+        { title: "Your accountant is still looking backwards", text: "Even with strong personal awareness, most accountants are reporting on the past. Not guiding the future. There is a gap between having the data and knowing exactly what to do with it. That gap is where profit gets left on the table." },
+        { title: "You are in a powerful minority. The question is what you do with it.", text: "Financial awareness at your level is rare. The business owners who achieve genuine financial freedom are those who systemise what they already know. The ones who build a monthly ritual around their numbers and keep improving them." }
+      ]
+    },
+    mid: {
+      title: `${firstName}, there are gaps here. <em>The good news? They are very fixable.</em>`,
+      subtitle: "You have some financial awareness, but there are blind spots that are almost certainly costing you money right now. This is not unusual at all. And the businesses that fix this fastest are the ones that grow the most.",
+      insightsTitle: `What your answers <em>are actually revealing</em>`,
+      insights: [
+        { title: "You are making decisions on incomplete information", text: "Running a business without full financial clarity is like navigating without a map. You can move forward, but you are taking risks you do not need to take. The good news is the picture clears very quickly once someone explains what you are actually looking at." },
+        { title: "Your P&L is full of insights you are not using yet", text: "Every single month, your Profit and Loss statement contains a detailed picture of what is working and what is not. If it is sitting unread, or read but not understood, that is money and opportunity going to waste every month. That changes when you know your numbers." },
+        { title: "This is not your fault. It is a gap nobody filled for you.", text: "Your accountant handles compliance. Business coaches talk strategy. Nobody has ever sat down and explained what your own numbers mean in plain English. That is the exact gap Know Your Numbers! was built to fill, and it is more common than you could imagine." }
+      ]
+    },
+    low: {
+      title: `${firstName}, this is <em>exactly the gap</em> we built this for.`,
+      subtitle: "Right now, you are running your business without a clear picture of its financial health. You are far from alone in this. Most small business owners are in the same position. And fixing it is more powerful than most people expect.",
+      insightsTitle: `Three things you deserve to <em>know right now</em>`,
+      insights: [
+        { title: "Not knowing your numbers is normal. And completely changeable.", text: "Over 80% of small business owners tell us they do not fully understand their own P&L. This is not a reflection on your intelligence or your ability to run a great business. It is simply a skill nobody taught you. And once someone explains it clearly, most people say it was far simpler than they expected." },
+        { title: "Your accountant is not the solution to this", text: "Accountants are trained in compliance: VAT returns, payroll, year-end accounts. Translating your P&L into plain English and telling you exactly what to do about it? That is a completely different service. Most business owners never receive it. That is the problem Know Your Numbers! was built to solve." },
+        { title: "Understanding your numbers is a genuine superpower", text: "Business owners who understand their numbers sleep better. They make better decisions. They spot problems early and opportunities faster. They feel in control of their business rather than controlled by it. That transformation happens much quicker than most people think, and it starts the moment somebody finally explains what the numbers mean." }
+      ]
+    }
+  };
+
+  const c = score >= 80 ? content.high : score >= 40 ? content.mid : content.low;
+  document.getElementById('resultTitle').innerHTML = c.title;
+  document.getElementById('resultSubtitle').innerHTML = c.subtitle;
+  document.getElementById('insightsTitle').innerHTML = c.insightsTitle;
+
+  const insightList = document.getElementById('insightList');
+  c.insights.forEach((ins, i) => {
+    const card = document.createElement('div');
+    card.className = 'insight-card';
+    card.innerHTML = `<div class="insight-num">0${i + 1}</div><div><div class="insight-title">${ins.title}</div><p class="insight-text">${ins.text}</p></div>`;
+    insightList.appendChild(card);
+  });
+
+  // CTA
+  const ctaSection = document.getElementById('ctaSection');
+  const SHEET_URL = 'https://script.google.com/macros/s/AKfycby_kjKFPq9471V9gOfkL2NQRjDEL2-40OE5TakPa-5ehl8DYcbMQT4jfvuTRygpVQG8IQ/exec';
+
+  if (qualified) {
+    ctaSection.innerHTML = `
+      <div class="cta-qualified">
+        <div class="waitlist-pill">🔒 Limited places available</div>
+        <h2 class="cta-title">You are exactly who<br><em>we built this for.</em></h2>
+        <p class="cta-desc">
+          Know Your Numbers! is launching soon. Each month you send us your P&L. We analyse it with expert-level financial intelligence and send back a plain-English report with your two most important focus points for the month ahead.
+          <br><br>
+          <strong>Imagine starting every month knowing exactly what to focus on to grow your profit. That is what this delivers.</strong>
+        </p>
+        <div class="promise-list">
+          <div class="promise-item">More profit every month because you know where to focus</div>
+          <div class="promise-item">Less stress because the numbers finally make sense</div>
+          <div class="promise-item">Total confidence to answer any question about your business</div>
+          <div class="promise-item">First access when we launch, ahead of everyone else</div>
+        </div>
+        <div id="wlFormWrap">
+          <div class="wl-form-row">
+            <input type="text" id="wlName" placeholder="Your name" value="${name}" />
+            <input type="email" id="wlEmail" placeholder="Email address" value="${email}" />
+          </div>
+          <button class="btn-waitlist" id="btnWaitlist">Yes, Reserve My Founding Member Place →</button>
+          <div class="no-commitment-note">
+            <strong>Just to be completely clear:</strong> by clicking above you are not buying anything, not signing up to any service, and not committing to anything at all. You are simply asking to be first to know when we open our doors. There is zero obligation. No card details. No charge. Ever. Just your name on a list of people who want to be first in line.
+          </div>
+        </div>
+        <div class="cta-reviews" id="wlReviews">
+          <div class="cta-reviews-label">What Founding Members say</div>
+          <div class="cta-review-item">
+            <div class="cta-review-stars">★★★★★</div>
+            <p class="cta-review-text">"I cannot believe I ran my business for this long without understanding what my P&L was actually telling me. Within a month everything changed."</p>
+            <div class="cta-review-author">Rachel P., Recruitment Agency Owner &nbsp;<span class="founding-badge-sm">⭐ Trial Member</span></div>
+          </div>
+          <div class="cta-review-item">
+            <div class="cta-review-stars">★★★★★</div>
+            <p class="cta-review-text">"The two focus points each month are worth the price alone. I used to spend hours not knowing what to work on. Now I know exactly."</p>
+            <div class="cta-review-author">James M., Construction Business &nbsp;<span class="founding-badge-sm">⭐ Trial Member</span></div>
+          </div>
+        </div>
+        <div class="success-state success-qualified" id="wlSuccess">
+          <div class="success-icon">🎉</div>
+          <h3>You are on the list, ${firstName}!</h3>
+          <p>We will be in touch when we open the doors. You will be first to know and first to get access. Watch your inbox.</p>
+        </div>
+      </div>`;
+
+    document.getElementById('btnWaitlist').addEventListener('click', async () => {
+      const n = document.getElementById('wlName').value.trim();
+      const e = document.getElementById('wlEmail').value.trim();
+      if (!n || !e) return;
+      const btn = document.getElementById('btnWaitlist');
+      btn.textContent = 'Saving your place...';
+      btn.disabled = true;
+      try {
+        await fetch(SHEET_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ type: 'WAITLIST', name: n, email: e, score, turnover: answers.q6 || '', desired_outcome: answers.q7 || '', preferred_solution: answers.q8 || '', q1_net_profit: answers.q1 || '', q2_reviews_pl: answers.q2 || '', q3_profit_cashflow: answers.q3 || '', q4_knows_expenses: answers.q4 || '', q5_accountant_explained: answers.q5 || '' })
+        });
+      } catch(err) { console.warn('Submission error', err); }
+      document.getElementById('wlFormWrap').style.display = 'none';
+      document.getElementById('wlReviews').style.display = 'none';
+      document.getElementById('wlSuccess').style.display = 'block';
+    });
+
+  } else {
+    const reason = score > 60 ? "your financial awareness is already strong" : "you are at the very beginning of your business journey";
+    ctaSection.innerHTML = `
+      <div class="cta-not-qualified">
+        <h2 class="cta-title">Not quite the right fit <em>right now.</em> And that is completely okay.</h2>
+        <p class="cta-desc">
+          Based on your answers, it looks like ${reason}. That means our current service is not the most useful thing for you at this moment, but that may well change. We would love to stay in touch.
+          <br><br>
+          Sign up below and we will share genuinely useful content as we build. No spam, no sales pressure. At most one email per month, and we will always make it worth your time.
+        </p>
+        <div id="ulFormWrap">
+          <div class="ul-form-row">
+            <input type="text" id="ulName" placeholder="Your name" value="${name}" />
+            <input type="email" id="ulEmail" placeholder="Email address" value="${email}" />
+          </div>
+          <button class="btn-update" id="btnUpdate">Keep Me Updated →</button>
+          <p style="font-size:0.75rem;color:var(--muted);margin-top:12px;text-align:center;line-height:1.6;">🔒 Your details are completely safe. Never sold. Never shared. Maximum one email per month.</p>
+        </div>
+        <div class="success-state success-not-qualified" id="ulSuccess">
+          <div class="success-icon">✅</div>
+          <h3>You are on the list, ${firstName}!</h3>
+          <p>We will be in touch occasionally with useful content. Nothing pushy, just things we genuinely think will help your business.</p>
+        </div>
+      </div>`;
+
+    document.getElementById('btnUpdate').addEventListener('click', async () => {
+      const n = document.getElementById('ulName').value.trim();
+      const e = document.getElementById('ulEmail').value.trim();
+      if (!n || !e) return;
+      const btn = document.getElementById('btnUpdate');
+      btn.textContent = 'Adding you...';
+      btn.disabled = true;
+      try {
+        await fetch(SHEET_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ type: 'KEEP_UPDATED', name: n, email: e, score, not_qualified_reason: reason, turnover: answers.q6 || '', desired_outcome: answers.q7 || '', preferred_solution: answers.q8 || '' })
+        });
+      } catch(err) { console.warn('Submission error', err); }
+      document.getElementById('ulFormWrap').style.display = 'none';
+      document.getElementById('ulSuccess').style.display = 'block';
+    });
+  }
+</script>
+</body>
+</html>
