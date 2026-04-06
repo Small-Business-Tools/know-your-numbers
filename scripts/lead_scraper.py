@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Daily Lead Scraper for Know Your Numbers
-Gathers 15+ small business leads from Wellingborough area
+Enhanced Lead Scraper for Know Your Numbers
+Finds business websites, then scrapes emails from contact pages
 """
 
 import os
@@ -11,6 +11,7 @@ import time
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional
+from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 import gspread
@@ -29,26 +30,12 @@ logger = logging.getLogger(__name__)
 
 # Target locations - All major Northamptonshire towns
 TARGET_TOWNS = [
-    # Wellingborough area (primary)
-    "Wellingborough",
-    "Rushden", 
-    "Higham Ferrers",
-    "Irthlingborough",
-    "Raunds",
-    "Finedon",
-    # Rest of Northamptonshire
-    "Kettering",
-    "Corby",
-    "Desborough",
-    "Rothwell",
-    "Burton Latimer",
-    "Thrapston",
-    "Oundle",
-    "Earls Barton"
+    "Wellingborough", "Rushden", "Higham Ferrers", "Irthlingborough",
+    "Raunds", "Finedon", "Kettering", "Corby", "Desborough",
+    "Rothwell", "Burton Latimer", "Thrapston", "Oundle", "Earls Barton"
 ]
 
-# Business categories to target (small business owners, typically <10 employees)
-# NOTE: Accountants and bookkeepers are EXCLUDED - they are competitors/not our target market
+# Business categories - ACCOUNTANTS EXCLUDED
 BUSINESS_CATEGORIES = [
     "solicitor", "estate agent", "recruitment consultant",
     "marketing agency", "web design", "plumber", "electrician",
@@ -59,10 +46,13 @@ BUSINESS_CATEGORIES = [
 ]
 
 
-class LeadScraper:
+class EnhancedLeadScraper:
     def __init__(self):
         self.leads = []
-        self.google_maps_api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
         
         # Initialize Google Sheets
         creds_json = os.getenv('GOOGLE_SHEETS_CREDS')
@@ -83,8 +73,6 @@ class LeadScraper:
         try:
             sheet = self.gc.open_by_key(self.spreadsheet_id).worksheet(self.sheet_name)
             all_values = sheet.get_all_values()
-            
-            # Assuming email is in column C (index 2)
             emails = {row[2].lower().strip() for row in all_values[1:] if len(row) > 2 and row[2]}
             logger.info(f"Found {len(emails)} existing emails in sheet")
             return emails
@@ -93,129 +81,148 @@ class LeadScraper:
             return set()
     
     def is_small_business(self, business_name: str) -> bool:
-        """
-        Filter for small businesses (<10 employees)
-        Exclude large chains, PLCs, corporate keywords, and accountants/bookkeepers
-        """
-        # Exclude large company indicators
+        """Filter for small businesses, exclude chains and accountants"""
         exclude_keywords = [
-            'PLC', 'LLP', 'LIMITED LIABILITY PARTNERSHIP',
-            'GROUP', 'HOLDINGS', 'INTERNATIONAL',
-            'CHAIN', 'FRANCHISE', 'CORPORATE',
-            'TESCO', 'SAINSBURY', 'ASDA', 'MORRISONS',
-            'COSTA', 'STARBUCKS', 'MCDONALDS', 'KFC',
-            'BOOTS', 'SUPERDRUG', 'LLOYDS', 'BARCLAYS',
-            # EXCLUDE ACCOUNTANTS - Not our target market
-            'ACCOUNTANT', 'ACCOUNTANCY', 'ACCOUNTING',
-            'BOOKKEEPER', 'BOOKKEEPING', 'BOOK KEEPER',
+            'PLC', 'LLP', 'GROUP', 'HOLDINGS', 'INTERNATIONAL', 'CHAIN', 'FRANCHISE',
+            'TESCO', 'SAINSBURY', 'ASDA', 'MORRISONS', 'COSTA', 'STARBUCKS',
+            'MCDONALDS', 'KFC', 'BOOTS', 'SUPERDRUG', 'LLOYDS', 'BARCLAYS',
+            'ACCOUNTANT', 'ACCOUNTANCY', 'ACCOUNTING', 'BOOKKEEPER', 'BOOKKEEPING',
             'CHARTERED ACCOUNTANT', 'ACCA', 'ACA'
         ]
         
         business_upper = business_name.upper()
-        
-        # Exclude if contains corporate keywords or accountant-related terms
         if any(keyword in business_upper for keyword in exclude_keywords):
             return False
-        
-        # Include if it's clearly a local/independent business
-        small_biz_indicators = [
-            'INDEPENDENT', 'LOCAL', 'FAMILY', 'MOBILE',
-            '& SON', '& SONS', '& DAUGHTER', 'BROTHERS',
-            "'S ", " SERVICES", " SOLUTIONS"
-        ]
-        
-        # If has small biz indicators, likely good
-        if any(indicator in business_upper for indicator in small_biz_indicators):
-            return True
-        
-        # Default: include (we'll manually filter if needed)
         return True
     
-    def extract_email_from_text(self, text: str) -> Optional[str]:
-        """Extract email address from text"""
+    def extract_emails_from_text(self, text: str) -> List[str]:
+        """Extract all email addresses from text"""
         email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        match = re.search(email_pattern, text)
-        return match.group(0) if match else None
+        emails = re.findall(email_pattern, text)
+        # Filter out common fake/example emails
+        valid_emails = [
+            e for e in emails 
+            if not any(x in e.lower() for x in ['example', 'test', 'spam', 'noreply', 'sentry'])
+        ]
+        return valid_emails
     
-    def scrape_google_search(self, business_name: str, town: str) -> Optional[Dict]:
-        """
-        Scrape Google search results for business email
-        Format: "Business Name" Town email OR gmail OR hotmail
-        """
+    def find_contact_page_urls(self, base_url: str, soup: BeautifulSoup) -> List[str]:
+        """Find contact/about page URLs"""
+        contact_keywords = ['contact', 'about', 'get-in-touch', 'reach-us', 'find-us']
+        contact_urls = []
+        
+        for link in soup.find_all('a', href=True):
+            href = link['href'].lower()
+            text = link.get_text().lower()
+            
+            if any(keyword in href or keyword in text for keyword in contact_keywords):
+                full_url = urljoin(base_url, link['href'])
+                if urlparse(full_url).netloc == urlparse(base_url).netloc:
+                    contact_urls.append(full_url)
+        
+        return list(set(contact_urls))[:3]  # Max 3 contact pages
+    
+    def scrape_website_for_email(self, website_url: str) -> Optional[str]:
+        """Visit a website and scrape for email addresses"""
         try:
-            query = f'"{business_name}" {town} email OR gmail OR hotmail'
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            # Normalize URL
+            if not website_url.startswith('http'):
+                website_url = 'https://' + website_url
             
-            # Use DuckDuckGo instead of Google (no CAPTCHA)
-            url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
-            response = requests.get(url, headers=headers, timeout=10)
+            logger.info(f"  → Checking website: {website_url}")
             
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                # Extract snippets
-                snippets = soup.find_all('a', class_='result__snippet')
-                
-                for snippet in snippets[:3]:  # Check first 3 results
-                    text = snippet.get_text()
-                    email = self.extract_email_from_text(text)
+            # Try homepage first
+            response = self.session.get(website_url, timeout=15, allow_redirects=True)
+            if response.status_code != 200:
+                return None
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Check homepage for emails
+            homepage_text = soup.get_text()
+            emails = self.extract_emails_from_text(homepage_text)
+            
+            if emails:
+                logger.info(f"  ✓ Found email on homepage: {emails[0]}")
+                return emails[0]
+            
+            # If no email on homepage, check contact pages
+            contact_urls = self.find_contact_page_urls(website_url, soup)
+            
+            for contact_url in contact_urls:
+                try:
+                    contact_response = self.session.get(contact_url, timeout=10)
+                    if contact_response.status_code == 200:
+                        contact_soup = BeautifulSoup(contact_response.text, 'html.parser')
+                        contact_text = contact_soup.get_text()
+                        emails = self.extract_emails_from_text(contact_text)
+                        
+                        if emails:
+                            logger.info(f"  ✓ Found email on contact page: {emails[0]}")
+                            return emails[0]
                     
-                    if email and not any(x in email.lower() for x in ['example', 'google', 'schema']):
-                        return {'email': email, 'source': 'google_search'}
+                    time.sleep(1)
+                except:
+                    continue
             
-            time.sleep(2)  # Be respectful
+            # Fallback: try common email patterns
+            domain = urlparse(website_url).netloc.replace('www.', '')
+            common_emails = [f'info@{domain}', f'hello@{domain}', f'contact@{domain}']
+            
+            logger.info(f"  → No email found, using fallback: {common_emails[0]}")
+            return common_emails[0]
             
         except Exception as e:
-            logger.warning(f"Error in Google search for {business_name}: {e}")
-        
-        return None
+            logger.warning(f"  ✗ Error scraping website {website_url}: {e}")
+            return None
     
-    def scrape_yell_directory(self, category: str, town: str) -> List[Dict]:
-        """Scrape Yell.com business directory"""
+    def scrape_yell_with_websites(self, category: str, town: str) -> List[Dict]:
+        """Scrape Yell.com and extract business websites"""
         leads = []
         
         try:
-            # Yell.com search URL
             url = f"https://www.yell.com/ucs/UcsSearchAction.do?keywords={category}&location={town}"
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = self.session.get(url, timeout=15)
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # Find business listings
             businesses = soup.find_all('div', class_='businessCapsule--mainContent')
             
-            for biz in businesses[:3]:  # Limit per category
+            for biz in businesses[:5]:  # Check first 5 businesses
                 try:
                     name_elem = biz.find('h2', class_='businessCapsule--name')
                     business_name = name_elem.get_text(strip=True) if name_elem else None
                     
-                    if not business_name:
+                    if not business_name or not self.is_small_business(business_name):
                         continue
                     
-                    # Try to find email on detail page
+                    # Get business detail page
                     detail_link = name_elem.find('a')['href'] if name_elem and name_elem.find('a') else None
                     
                     if detail_link:
                         detail_url = f"https://www.yell.com{detail_link}"
-                        detail_response = requests.get(detail_url, headers=headers, timeout=10)
+                        detail_response = self.session.get(detail_url, timeout=10)
                         detail_soup = BeautifulSoup(detail_response.text, 'html.parser')
                         
-                        # Look for email in page content
-                        page_text = detail_soup.get_text()
-                        email = self.extract_email_from_text(page_text)
+                        # Look for website link
+                        website_link = detail_soup.find('a', class_='text-nowrap--md')
+                        if website_link and 'href' in website_link.attrs:
+                            website_url = website_link['href']
+                            
+                            # Scrape the actual business website for email
+                            email = self.scrape_website_for_email(website_url)
+                            
+                            if email:
+                                leads.append({
+                                    'name': '',
+                                    'business': business_name,
+                                    'email': email,
+                                    'source': 'yell+website',
+                                    'town': town,
+                                    'website': website_url
+                                })
                         
-                        if email:
-                            leads.append({
-                                'name': '',  # Owner name not available from Yell
-                                'business': business_name,
-                                'email': email,
-                                'source': 'yell',
-                                'town': town
-                            })
-                        
-                        time.sleep(1)  # Rate limiting
+                        time.sleep(2)  # Be respectful
                 
                 except Exception as e:
                     logger.warning(f"Error parsing Yell business: {e}")
@@ -226,98 +233,101 @@ class LeadScraper:
         
         return leads
     
-    def search_companies_house(self, postcode_prefix: str = "NN") -> List[Dict]:
-        """
-        Search Companies House for small limited companies
-        Free API, no key required for basic search
-        """
+    def search_google_for_business(self, business_type: str, town: str) -> List[Dict]:
+        """Search Google for businesses and their websites"""
         leads = []
         
         try:
-            # Companies House API endpoint (free tier)
-            url = "https://api.company-information.service.gov.uk/search/companies"
-            params = {
-                'q': f'{postcode_prefix}*',  # Northamptonshire postcodes
-                'items_per_page': 20
-            }
+            # Use DuckDuckGo HTML search (no API needed)
+            query = f"{business_type} {town} Northamptonshire"
+            url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
             
-            response = requests.get(url, params=params, timeout=10)
+            response = self.session.get(url, timeout=10)
+            soup = BeautifulSoup(response.text, 'html.parser')
             
-            if response.status_code == 200:
-                data = response.json()
-                
-                for company in data.get('items', [])[:10]:
-                    # Only target small Ltd companies (not PLCs or large orgs)
-                    if 'LTD' in company.get('title', '').upper():
-                        company_name = company.get('title')
-                        company_number = company.get('company_number')
+            # Extract search results
+            results = soup.find_all('a', class_='result__a')[:5]
+            
+            for result in results:
+                try:
+                    result_url = result.get('href', '')
+                    business_name = result.get_text(strip=True)
+                    
+                    if not business_name or not self.is_small_business(business_name):
+                        continue
+                    
+                    # Extract actual website URL
+                    if result_url and 'uddg=' in result_url:
+                        website_url = result_url.split('uddg=')[1].split('&')[0]
                         
-                        # Try to find director/owner info and email via search
-                        search_result = self.scrape_google_search(company_name, "Wellingborough")
+                        # Skip Yell, directories, Facebook (we want real websites)
+                        if any(x in website_url for x in ['yell.com', 'facebook.com', 'linkedin.com', '192.com']):
+                            continue
                         
-                        if search_result and search_result.get('email'):
+                        email = self.scrape_website_for_email(website_url)
+                        
+                        if email:
                             leads.append({
-                                'name': '',  # Owner name requires separate API call
-                                'business': company_name,
-                                'email': search_result['email'],
-                                'source': 'companies_house',
-                                'town': 'Wellingborough'
+                                'name': '',
+                                'business': business_name,
+                                'email': email,
+                                'source': 'google+website',
+                                'town': town,
+                                'website': website_url
                             })
-                        
-                        time.sleep(2)
+                    
+                    time.sleep(2)
+                
+                except Exception as e:
+                    continue
         
         except Exception as e:
-            logger.error(f"Error with Companies House API: {e}")
+            logger.error(f"Error in Google search: {e}")
         
         return leads
     
     def gather_leads(self, target_count: int = 15) -> List[Dict]:
-        """Main lead gathering function"""
-        logger.info(f"Starting lead generation - target: {target_count} leads")
+        """Main lead gathering function with website scraping"""
+        logger.info(f"Starting ENHANCED lead generation - target: {target_count} leads")
         
         existing_emails = self.get_existing_emails()
         collected_leads = []
         
-        # Method 1: Yell.com directory scraping
-        logger.info("Scraping Yell.com directory...")
-        for town in TARGET_TOWNS[:2]:  # Start with 2 towns
-            for category in BUSINESS_CATEGORIES[:3]:  # Try 3 categories per town
+        # Method 1: Yell.com with website scraping
+        logger.info("Method 1: Yell.com directory with website scraping...")
+        for town in TARGET_TOWNS[:4]:  # 4 towns
+            for category in BUSINESS_CATEGORIES[:6]:  # 6 categories
                 if len(collected_leads) >= target_count:
                     break
                 
                 logger.info(f"Searching for {category} in {town}...")
-                yell_leads = self.scrape_yell_directory(category, town)
+                yell_leads = self.scrape_yell_with_websites(category, town)
                 
                 for lead in yell_leads:
-                    # Filter for small businesses only
-                    if not self.is_small_business(lead.get('business', '')):
-                        logger.info(f"⊘ Skipped (large/chain): {lead['business']}")
-                        continue
-                    
                     if lead['email'].lower() not in existing_emails:
                         collected_leads.append(lead)
                         existing_emails.add(lead['email'].lower())
-                        logger.info(f"✓ Found: {lead['business']} - {lead['email']}")
+                        logger.info(f"✓ FOUND: {lead['business']} - {lead['email']}")
                 
-                time.sleep(2)
-        
-        # Method 2: Companies House + Google search
-        if len(collected_leads) < target_count:
-            logger.info("Searching Companies House...")
-            ch_leads = self.search_companies_house()
-            
-            for lead in ch_leads:
                 if len(collected_leads) >= target_count:
                     break
-                
-                # Filter for small businesses
-                if not self.is_small_business(lead.get('business', '')):
-                    continue
-                
-                if lead['email'].lower() not in existing_emails:
-                    collected_leads.append(lead)
-                    existing_emails.add(lead['email'].lower())
-                    logger.info(f"✓ Found: {lead['business']} - {lead['email']}")
+        
+        # Method 2: Google search with website scraping
+        if len(collected_leads) < target_count:
+            logger.info("Method 2: Google search with website scraping...")
+            for town in TARGET_TOWNS[:3]:
+                for category in BUSINESS_CATEGORIES[:4]:
+                    if len(collected_leads) >= target_count:
+                        break
+                    
+                    logger.info(f"Google searching for {category} in {town}...")
+                    google_leads = self.search_google_for_business(category, town)
+                    
+                    for lead in google_leads:
+                        if lead['email'].lower() not in existing_emails:
+                            collected_leads.append(lead)
+                            existing_emails.add(lead['email'].lower())
+                            logger.info(f"✓ FOUND: {lead['business']} - {lead['email']}")
         
         logger.info(f"Lead generation complete. Found {len(collected_leads)} new leads")
         return collected_leads
@@ -331,7 +341,6 @@ class LeadScraper:
         try:
             sheet = self.gc.open_by_key(self.spreadsheet_id).worksheet(self.sheet_name)
             
-            # Format: Name, Business, Email, Date Added, Email 1 Sent, Email 2 Sent, Email 3 Sent, Status, Next Action Date, Notes
             rows_to_append = []
             today = datetime.now().strftime('%Y-%m-%d')
             
@@ -346,11 +355,10 @@ class LeadScraper:
                     '',  # Email 3 Sent
                     'New',  # Status
                     '',  # Next Action Date
-                    f"Source: {lead.get('source', 'unknown')}"  # Notes
+                    f"Source: {lead.get('source', 'unknown')} | Website: {lead.get('website', 'N/A')}"
                 ]
                 rows_to_append.append(row)
             
-            # Append all rows at once
             sheet.append_rows(rows_to_append)
             logger.info(f"✓ Appended {len(rows_to_append)} leads to sheet")
             
@@ -362,7 +370,7 @@ class LeadScraper:
 def main():
     """Main execution"""
     try:
-        scraper = LeadScraper()
+        scraper = EnhancedLeadScraper()
         leads = scraper.gather_leads(target_count=15)
         
         if leads:
@@ -375,7 +383,7 @@ def main():
         summary = {
             'date': datetime.now().isoformat(),
             'leads_found': len(leads),
-            'leads': [{'business': l['business'], 'email': l['email']} for l in leads]
+            'leads': [{'business': l['business'], 'email': l['email'], 'website': l.get('website', 'N/A')} for l in leads]
         }
         
         with open(f'logs/summary_{datetime.now().strftime("%Y%m%d")}.json', 'w') as f:
