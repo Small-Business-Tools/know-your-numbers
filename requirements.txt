@@ -1,0 +1,124 @@
+# 🤖 Daily Lead Generation System
+
+Automatically scrapes 15+ small business leads daily, checks for duplicates, and adds them to Google Sheets for your cold outreach pipeline.
+
+## 📊 Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  GitHub Actions (Runs Daily at 7 AM)                        │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Lead Scraper Python Script                                  │
+│  • Yell.com directory (primary)                             │
+│  • Companies House API (secondary)                          │
+│  • DuckDuckGo search (email finding)                        │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Duplicate Check                                             │
+│  • Fetch existing emails from Google Sheet                  │
+│  • Filter out duplicates                                     │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Google Sheet Update                                         │
+│  • Append 15 new leads                                       │
+│  • Format: Name | Business | Email | Date | Status...       │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Make.com Watches Sheet (Your Existing Setup)               │
+│  • Detects new rows                                          │
+│  • Triggers 3-email outreach sequence                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## ⚡ Quick Start
+
+1. **Read SETUP_GUIDE.md** (5-minute setup)
+2. Set up Google Service Account
+3. Add GitHub Secrets
+4. Upload files to your repo
+5. Test with "Run workflow"
+6. Done! Leads arrive daily at 7 AM
+
+## 📁 Files
+
+```
+├── .github/workflows/
+│   └── daily-lead-gen.yml       # GitHub Actions workflow
+├── scripts/
+│   └── lead_scraper.py          # Main scraping logic
+├── logs/                         # Daily run logs
+├── requirements.txt              # Python dependencies
+├── SETUP_GUIDE.md               # Detailed setup instructions
+└── README.md                    # This file
+```
+
+## 🎯 Features
+
+✅ **Free** (100% uses free tiers)  
+✅ **Automated** (runs daily at 7 PM UK time)  
+✅ **Duplicate-safe** (checks existing emails)  
+✅ **Small business focused** (<10 employees, excludes chains/PLCs)  
+✅ **Local-focused** (Northamptonshire-wide coverage)  
+✅ **Actively trading** (filters out dissolved companies)  
+✅ **Logged** (full audit trail of all scrapes)  
+✅ **Expandable** (easy to add more sources/towns)
+
+## 🏙️ Target Areas
+
+**Primary:** Wellingborough, Rushden, Higham Ferrers, Irthlingborough, Raunds, Finedon
+
+**Extended:** Kettering, Corby, Desborough, Rothwell, Burton Latimer, Thrapston, Oundle, Earls Barton
+
+*(Full Northamptonshire coverage)*
+
+## 🏢 Target Business Types
+
+**Professional Services:** Solicitors, Estate Agents, Recruitment Consultants, Marketing Agencies, Web Designers, Independent Consultants
+
+**Healthcare:** Chiropractors, Physiotherapists, Dentists, Opticians
+
+**Trades:** Plumbers, Electricians, Builders, Mobile Mechanics, Garages
+
+**Personal Services:** Salons, Barbers, Personal Trainers, Driving Instructors, Photographers
+
+**Hospitality:** Cafes, Restaurants, Independent Food Businesses
+
+**Other:** Cleaning Services, Florists
+
+*Focus: Small independents (<10 employees), excludes chains and large corporations*
+
+**EXCLUDED:** Accountants, bookkeepers, and accounting firms (not our target market)
+
+## 📈 Expected Output
+
+**Daily:** 15-20 new leads  
+**Weekly:** 75-100 new leads  
+**Monthly:** 300-400 new leads
+
+## 💰 Cost
+
+**£0/month** - Everything uses free tiers:
+- GitHub Actions: 2,000 minutes/month free (uses ~150)
+- Google Sheets API: Unlimited for service accounts
+- Web scraping: Free public data
+
+## 🚀 Future Enhancements
+
+- Add Google Maps API for richer business data
+- Scrape LinkedIn for owner names
+- Add more business directories (Thomson Local, Bing)
+- SMS/WhatsApp enrichment
+- Company size filtering (exclude large corps)
+
+## 📞 Support
+
+See **SETUP_GUIDE.md** for troubleshooting and configuration options.
+
+---
+
+**Built for Know Your Numbers cold outreach pipeline**

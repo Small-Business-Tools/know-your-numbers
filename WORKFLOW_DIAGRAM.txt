@@ -1,0 +1,163 @@
+# 📤 How to Upload to GitHub - Visual Guide
+
+Your spreadsheet ID is already configured: `1fj3oZLjRhz4dyuUzFrz9hPJ2VazqIySPQjiyrz5rDEs`
+
+## Method 1: GitHub Web Interface (Easiest - 5 minutes)
+
+### Step 1: Go to Your Repo
+```
+https://github.com/Small-Business-Tools/know-your-numbers
+```
+
+### Step 2: Create Folder Structure
+
+**Create `.github/workflows/` folder:**
+1. Click **Add file** → **Create new file**
+2. In the name box, type: `.github/workflows/daily-lead-gen.yml`
+   (The folders are created automatically when you type the `/`)
+3. Copy contents from `daily-lead-gen.yml` file
+4. Paste into GitHub editor
+5. Scroll down, click **Commit changes**
+
+**Create `scripts/` folder:**
+1. Click **Add file** → **Create new file**  
+2. Type: `scripts/lead_scraper.py`
+3. Copy contents from `lead_scraper.py` file
+4. Paste into GitHub editor
+5. Click **Commit changes**
+
+**Create `logs/` folder:**
+1. Click **Add file** → **Create new file**
+2. Type: `logs/.gitkeep`
+3. Leave file empty (or put a single space)
+4. Click **Commit changes**
+
+**Upload other files:**
+1. Click **Add file** → **Create new file**
+2. Type filename: `requirements.txt`
+3. Copy and paste contents
+4. Commit
+5. Repeat for:
+   - `.gitignore`
+   - `README.md`
+   - `SETUP_GUIDE.md`
+   - `QUICK_START.md`
+   - `IMPLEMENTATION_CHECKLIST.md`
+
+---
+
+## Method 2: Upload Multiple Files at Once
+
+1. Go to your repo: `https://github.com/Small-Business-Tools/know-your-numbers`
+2. Click **Add file** → **Upload files**
+3. Drag the ENTIRE `lead-generation-system` folder from your downloads
+4. GitHub will preserve the folder structure
+5. Click **Commit changes**
+
+**⚠️ Note:** GitHub web upload keeps folder structure, so this is actually easier!
+
+---
+
+## Method 3: Git Command Line (If you know Git)
+
+```bash
+# Navigate to your repo
+cd /path/to/know-your-numbers
+
+# Copy files from downloads
+cp -r /path/to/lead-generation-system/.github .
+cp -r /path/to/lead-generation-system/scripts .
+cp -r /path/to/lead-generation-system/logs .
+cp /path/to/lead-generation-system/requirements.txt .
+cp /path/to/lead-generation-system/.gitignore .
+cp /path/to/lead-generation-system/*.md .
+
+# Commit and push
+git add .
+git commit -m "Add daily lead generation system - runs at 7pm daily"
+git push
+```
+
+---
+
+## ✅ Final Folder Structure Should Look Like:
+
+```
+know-your-numbers/
+├── .github/
+│   └── workflows/
+│       └── daily-lead-gen.yml          ✓ Workflow file
+├── scripts/
+│   └── lead_scraper.py                 ✓ Main scraper
+├── logs/
+│   └── .gitkeep                        ✓ Empty placeholder
+├── index.html                          (your existing files)
+├── quiz.html                           (your existing files)
+├── results.html                        (your existing files)
+├── requirements.txt                    ✓ Python dependencies
+├── .gitignore                          ✓ Ignore secrets
+├── README.md                           ✓ Overview
+├── SETUP_GUIDE.md                      ✓ Detailed guide
+├── QUICK_START.md                      ✓ Quick reference
+└── IMPLEMENTATION_CHECKLIST.md         ✓ Step-by-step
+```
+
+---
+
+## 🔐 Now Set Up GitHub Secrets
+
+After uploading files, you need to add 3 secrets:
+
+### Go to: Settings → Secrets and variables → Actions → New repository secret
+
+**Secret 1: GOOGLE_SHEETS_CREDS**
+- Name: `GOOGLE_SHEETS_CREDS`
+- Value: (You'll get this from Google Cloud Console - see QUICK_START.md)
+
+**Secret 2: SPREADSHEET_ID**
+- Name: `SPREADSHEET_ID`
+- Value: `1fj3oZLjRhz4dyuUzFrz9hPJ2VazqIySPQjiyrz5rDEs`
+
+**Secret 3: SHEET_NAME**
+- Name: `SHEET_NAME`
+- Value: `Prospects`
+
+---
+
+## 🧪 Test It
+
+1. Go to **Actions** tab
+2. Click **Daily Lead Generation** (left sidebar)
+3. Click **Run workflow** (right side)
+4. Select `main` branch
+5. Click green **Run workflow** button
+6. Wait 3-5 minutes
+7. Check your Google Sheet for new leads! ✅
+
+---
+
+## ⏰ Automatic Schedule
+
+Once the test works, it will run **automatically every day at 7:00 PM UK time**.
+
+You don't need to do anything - just check your sheet each evening!
+
+---
+
+## 🆘 Need Help?
+
+1. **Files not uploading?** 
+   → Try Method 2 (drag entire folder)
+
+2. **Workflow not showing in Actions?**
+   → Make sure `.github/workflows/daily-lead-gen.yml` path is exact
+
+3. **Secrets not saving?**
+   → Check you're in Settings → Secrets → **Actions** (not Codespaces/Dependabot)
+
+4. **Still stuck?**
+   → Read QUICK_START.md for troubleshooting
+
+---
+
+**Next:** Follow IMPLEMENTATION_CHECKLIST.md for Google Cloud setup! 🚀

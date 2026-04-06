@@ -1,0 +1,121 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    DAILY LEAD GENERATION WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ⏰ TRIGGER: Every Day at 7:00 PM UK Time                                   │
+│  (GitHub Actions Cron: 0 18 * * *)                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🔍 LEAD SCRAPER STARTS                                                      │
+│  • Initialize Python script                                                 │
+│  • Connect to Google Sheets API                                             │
+│  • Load existing emails (duplicate check)                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📊 SOURCE 1: Yell.com Directory                                             │
+│  • Search: "solicitor" in "Wellingborough"                                  │
+│  • Search: "cafe" in "Rushden"                                              │
+│  • Search: "plumber" in "Kettering"                                         │
+│  • Extract business names + emails                                          │
+│  • Filter: Small businesses only (<10 employees)                            │
+│  • EXCLUDE: Accountants/bookkeepers                                         │
+│  Result: ~8-10 leads                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🏢 SOURCE 2: Companies House API                                            │
+│  • Search: NN postcodes (Northamptonshire)                                  │
+│  • Filter: "Ltd" companies only                                             │
+│  • Cross-reference with Google search for emails                            │
+│  • Exclude: PLCs, large groups                                              │
+│  Result: ~5-7 leads                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🔎 SOURCE 3: DuckDuckGo Search                                              │
+│  • Query: "Business Name" Town email OR gmail                               │
+│  • Extract emails from search snippets                                      │
+│  • Validate email format                                                    │
+│  Result: ~2-3 additional leads                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ✅ QUALITY FILTERS                                                          │
+│  • Remove duplicates (check against existing sheet)                         │
+│  • Filter out: Tesco, Costa, Starbucks, etc. (chains)                       │
+│  • Filter out: PLCs, Holdings, Groups (large corps)                         │
+│  • Filter out: Accountants, Bookkeepers (not target market)                 │
+│  • Keep only: Independent, Local, Family businesses                         │
+│  • Validate: Email format, business name exists                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📝 COLLECT FINAL BATCH                                                      │
+│  Target: 15-20 new leads                                                    │
+│  Format:                                                                    │
+│    • Name: (blank - not available from most sources)                        │
+│    • Business: "ABC Accountants Ltd"                                        │
+│    • Email: "info@abcaccountants.co.uk"                                     │
+│    • Date Added: "2024-04-05"                                               │
+│    • Status: "New"                                                          │
+│    • Notes: "Source: yell"                                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📊 UPDATE GOOGLE SHEET                                                      │
+│  Spreadsheet: 1fj3oZLjRhz4dyuUzFrz9hPJ2VazqIySPQjiyrz5rDEs                  │
+│  Tab: "Prospects"                                                           │
+│  Action: Append 15 new rows to bottom of sheet                              │
+│  Columns: Name | Business | Email | Date Added | Email 1-3 | Status |      │
+│           Next Action | Notes                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📝 CREATE LOG FILES                                                         │
+│  • logs/scraper_20240405.log (detailed run log)                             │
+│  • logs/summary_20240405.json (results summary)                             │
+│  • GitHub Actions log (visible in Actions tab)                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ✅ WORKFLOW COMPLETE                                                        │
+│  • Status: SUCCESS ✓                                                        │
+│  • Leads added: 15                                                          │
+│  • Time taken: 3-5 minutes                                                  │
+│  • Next run: Tomorrow at 7 PM                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🤖 MAKE.COM AUTOMATION (Your Existing Setup)                               │
+│  • Watches Google Sheet for new rows                                        │
+│  • Detects Status = "New"                                                   │
+│  • Triggers 3-email cold outreach sequence                                  │
+│  • Updates Email 1/2/3 Sent columns                                         │
+│  • Changes Status to "In Progress"                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📈 RESULTS                                                                  │
+│  • Daily: 15+ new qualified leads                                           │
+│  • Weekly: 75-100 new prospects in pipeline                                 │
+│  • Monthly: 300-400 leads → emails → meetings                               │
+│  • Cost: £0                                                                 │
+│  • Manual work: 0 minutes                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+                           KEY SUCCESS FACTORS
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Runs automatically (no daily action needed)
+✅ Duplicate-safe (checks existing emails)
+✅ Quality-filtered (small businesses only)
+✅ Location-targeted (Northamptonshire only)
+✅ Free forever (uses only free tiers)
+✅ Fully logged (audit trail of everything)
+✅ Integrated (feeds Make.com outreach)
+
+═══════════════════════════════════════════════════════════════════════════════
